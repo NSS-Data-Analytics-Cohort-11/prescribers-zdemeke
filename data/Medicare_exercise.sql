@@ -107,4 +107,46 @@ ORDER BY population DESC
 select DISTINCT fipscounty from cbsa
 
 --Q6a. Find all rows in the prescription table where total_claims is at least 3000. Report the drug_name and the total_claim_count.
+SELECT drug_name, total_claim_count
+FROM prescription
+WHERE  total_claim_count >= 3000
+--Q6b. For each instance that you found in part a, add a column that indicates whether the drug is an opioid.
+SELECT d.drug_name, total_claim_count,
+		CASE WHEN opioid_drug_flag = 'Y' THEN 'opioid'
+		ELSE 'none'
+		END AS Opioid
+FROM prescription as p
+INNER JOIN drug as d
+ON d.drug_name = p.drug_name
+WHERE total_claim_count >= 3000
 
+--Q6c.Add another column to your answer from the previous part which gives the prescriber first and last name associated with each row.
+SELECT d.drug_name, total_claim_count,
+nppes_provider_first_name as first_name, nppes_provider_last_org_name as last_name,
+		CASE WHEN opioid_drug_flag = 'Y' THEN 'opioid'
+		ELSE 'none'
+		END AS Opioid
+FROM prescription as p
+INNER JOIN drug as d
+ON d.drug_name = p.drug_name
+INNER JOIN prescriber as pr 
+ON pr.npi = p.npi
+WHERE total_claim_count >= 3000
+--The goal of this exercise is to generate a full list of all pain management specialists in Nashville and the number of claims they had for each opioid.
+--Q7a First, create a list of all npi/drug_name combinations for pain management specialist (specialty_description = 'Pain Management') in the city of Nashville (nppes_provider_city = 'Nashville'), where the drug is an opioid(opioid_drug_flag = 'Y').
+--**Warning:** Double-check your query before running it. you will only need to use the prescriber and jdrug tables since you don't need the claims number yet.
+SELECT  d.drug_name, pr.npi
+FROM prescriber As pr
+CROSS JOIN drug AS d
+WHERE specialty_description ='Pain Management' AND nppes_provider_city = 'NASHVILLE' AND opioid_drug_flag = 'Y'
+	
+--Q7b.Next, report the number of claims per drug per prescriber. Be sure to include all combinations, whether or not the prescriber had any claims. You should report the npi, the drug name, and the number of claims (total_claim_count)
+SELECT  d.drug_name, pr.npi, total_claim_count
+FROM prescriber As pr
+CROSS JOIN drug AS d
+LEFT JOIN prescription AS p
+ON p.npi = pr.npi AND d.drug_name =p.drug_name
+WHERE specialty_description ='Pain Management' AND nppes_provider_city = 'NASHVILLE' AND opioid_drug_flag = 'Y'
+--Q 7C.Finally, if you have not done so already, fill in any missing values for total_claim_count with 0
+SELECT COALESCE (total_claim_count,0)
+FROM prescription
